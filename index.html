@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8 Rings Puzzle - With Undo</title>
+    <title>8 Rings Puzzle - Pro Version</title>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --bg-color: #f0f4f8;
+            --bg-color: #f8fafc;
             --card-bg: #ffffff;
-            --primary: #3498db;
-            --secondary: #95a5a6;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --red-ring: #ff5e57;
-            --red-border: #c0392b;
-            --yellow-ring: #f1c40f;
-            --yellow-border: #f39c12;
+            --primary: #3b82f6;
+            --ring-1: #ef4444; /* Default Red */
+            --ring-2: #f59e0b; /* Default Yellow */
+            --slot-bg: #e2e8f0;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
@@ -27,33 +25,55 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
+            color: #1e293b;
         }
 
         .game-container {
             background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             text-align: center;
-            max-width: 90vw;
+            width: 90%;
+            max-width: 800px;
         }
 
-        h1 { color: #2c3e50; margin-bottom: 0.5rem; }
-        
-        .instructions {
-            color: #7f8c8d;
+        /* Settings Panel */
+        .settings-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
             font-size: 0.9rem;
-            margin-bottom: 1.5rem;
+        }
+
+        .setting-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="color"] {
+            border: none;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            background: none;
         }
 
         .board {
             display: flex;
-            gap: 10px;
-            background: #e2e8f0;
+            gap: 8px;
+            background: var(--slot-bg);
             padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+            border-radius: 18px;
+            margin-bottom: 25px;
             justify-content: center;
+            overflow-x: auto;
         }
 
         .slot {
@@ -64,232 +84,277 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border: 2px solid transparent;
-            background: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.5);
+            flex-shrink: 0;
         }
 
-        .slot.empty {
-            border: 2px dashed #cbd5e0;
-        }
-
-        .slot.empty:hover {
-            background: white;
-            border-color: var(--primary);
-        }
+        .slot.empty { border: 2px dashed #cbd5e0; }
+        .slot.empty:hover { background: white; border-color: var(--primary); }
 
         .ring {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             pointer-events: none;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
         }
 
-        .red { background-color: var(--red-ring); border: 2px solid var(--red-border); }
-        .yellow { background-color: var(--yellow-ring); border: 2px solid var(--yellow-border); }
+        .type-r { background-color: var(--ring-1); border: 2px solid rgba(0,0,0,0.1); }
+        .type-y { background-color: var(--ring-2); border: 2px solid rgba(0,0,0,0.1); }
 
         .selected {
             background: var(--primary) !important;
-            border-color: #2980b9 !important;
-            transform: translateY(-8px);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
         }
 
         .controls {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
-            align-items: center;
-            margin-top: 1rem;
-        }
-
-        .status-area {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            font-weight: bold;
-            color: #34495e;
+            margin-top: 20px;
         }
 
         button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.2s;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
         }
 
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .btn-reset { background: var(--danger); color: white; }
-        .btn-undo { background: var(--secondary); color: white; }
+        button:active { transform: scale(0.95); }
+        .btn-undo { background: #64748b; color: white; }
+        .btn-reset { background: #ef4444; color: white; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         #message {
-            margin-top: 1.5rem;
-            height: 24px;
+            margin-top: 20px;
+            font-size: 1.2rem;
             font-weight: bold;
+            min-height: 1.5em;
         }
-        .win { color: var(--success); }
-        .lose { color: var(--danger); }
+
+        .win-text { color: #10b981; }
+        .fail-text { color: #f43f5e; }
+
+        /* Simple Switch styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
     </style>
 </head>
 <body>
 
     <div class="game-container">
         <h1>8 Rings Puzzle</h1>
-        <div class="instructions">
-            Group colors in 4 moves. Select a pair of rings, then a pair of empty slots.
+        
+        <!-- Customization Menu -->
+        <div class="settings-panel">
+            <div class="setting-group">
+                <label>Ring 1:</label>
+                <input type="color" id="color1" value="#ef4444" onchange="updateColors()">
+            </div>
+            <div class="setting-group">
+                <label>Ring 2:</label>
+                <input type="color" id="color2" value="#f59e0b" onchange="updateColors()">
+            </div>
+            <div class="setting-group">
+                <label>Confetti:</label>
+                <label class="switch">
+                    <input type="checkbox" id="confettiToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
         </div>
 
-        <div class="status-area">
-            <span>Moves: <span id="move-count">0</span> / 4</span>
-            <span id="hint-msg">Select a pair...</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: 500;">
+            <span>Moves: <span id="move-count">0</span>/4</span>
+            <span id="hint">Select a pair of rings</span>
         </div>
 
         <div id="board" class="board"></div>
 
         <div class="controls">
-            <button class="btn-undo" id="undoBtn" onclick="undoMove()" disabled>Undo Move</button>
-            <button class="btn-reset" onclick="resetGame()">Restart</button>
+            <button class="btn-undo" id="undoBtn" onclick="undo()" disabled>Undo</button>
+            <button class="btn-reset" onclick="reset()">Restart</button>
         </div>
 
         <div id="message"></div>
     </div>
 
     <script>
-        // E = Empty, R = Red, Y = Yellow
-        // 12 slots: 2 Empty, 8 Rings (alternating), 2 Empty
-        const INITIAL_STATE = ['E', 'E', 'R', 'Y', 'R', 'Y', 'R', 'Y', 'R', 'Y', 'E', 'E'];
-        let board = [...INITIAL_STATE];
-        let history = []; // Stack for undo functionality
+        const INITIAL = ['E', 'E', 'R', 'Y', 'R', 'Y', 'R', 'Y', 'R', 'Y', 'E', 'E'];
+        let board = [...INITIAL];
+        let history = [];
         let moves = 0;
-        let selectedIndices = [];
+        let selected = [];
 
-        const boardEl = document.getElementById('board');
-        const moveEl = document.getElementById('move-count');
-        const msgEl = document.getElementById('message');
-        const undoBtn = document.getElementById('undoBtn');
-        const hintEl = document.getElementById('hint-msg');
+        function updateColors() {
+            const c1 = document.getElementById('color1').value;
+            const c2 = document.getElementById('color2').value;
+            document.documentElement.style.setProperty('--ring-1', c1);
+            document.documentElement.style.setProperty('--ring-2', c2);
+        }
 
         function render() {
+            const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
+            
             board.forEach((val, i) => {
                 const slot = document.createElement('div');
-                slot.className = `slot ${val === 'E' ? 'empty' : ''}`;
-                if (selectedIndices.includes(i)) slot.classList.add('selected');
-
+                slot.className = `slot ${val === 'E' ? 'empty' : ''} ${selected.includes(i) ? 'selected' : ''}`;
+                
                 if (val !== 'E') {
                     const ring = document.createElement('div');
-                    ring.className = `ring ${val === 'R' ? 'red' : 'yellow'}`;
+                    ring.className = `ring type-${val.toLowerCase()}`;
                     slot.appendChild(ring);
                 }
 
-                slot.onclick = () => handleInput(i);
+                slot.onclick = () => handleClick(i);
                 boardEl.appendChild(slot);
             });
 
-            moveEl.innerText = moves;
-            undoBtn.disabled = history.length === 0;
-            
-            if (selectedIndices.length > 0) {
-                hintEl.innerText = "Select empty slots...";
-            } else {
-                hintEl.innerText = moves < 4 ? "Select a pair..." : "Game Over";
-            }
+            document.getElementById('move-count').innerText = moves;
+            document.getElementById('undoBtn').disabled = history.length === 0;
+            document.getElementById('hint').innerText = selected.length ? "Now select empty slots" : "Select a pair of rings";
         }
 
-        function handleInput(i) {
+        function handleClick(i) {
             if (moves >= 4 && !checkWin()) return;
 
-            // Selection Phase
-            if (selectedIndices.length === 0) {
+            if (selected.length === 0) {
                 if (board[i] !== 'E') {
-                    // Automatically grab the neighbor to form a pair
-                    if (board[i+1] !== 'E' && i < board.length - 1) {
-                        selectedIndices = [i, i+1];
-                    } else if (board[i-1] !== 'E' && i > 0) {
-                        selectedIndices = [i-1, i];
-                    }
+                    // Selection Logic: try to pick a pair
+                    if (board[i+1] !== 'E' && i < board.length - 1) selected = [i, i+1];
+                    else if (board[i-1] !== 'E' && i > 0) selected = [i-1, i];
                 }
-            } 
-            // Movement Phase
-            else {
-                // If user clicks a ring again, switch selection
+            } else {
+                // Deselect or switch if clicking a ring
                 if (board[i] !== 'E') {
-                    selectedIndices = [];
-                    handleInput(i);
+                    selected = [];
+                    handleClick(i);
                     return;
                 }
 
                 // Check for two adjacent empty slots
-                let destination = [];
-                if (board[i] === 'E' && board[i+1] === 'E') {
-                    destination = [i, i+1];
-                } else if (board[i] === 'E' && board[i-1] === 'E') {
-                    destination = [i-1, i];
-                }
+                let target = [];
+                if (board[i] === 'E' && board[i+1] === 'E') target = [i, i+1];
+                else if (board[i] === 'E' && board[i-1] === 'E') target = [i-1, i];
 
-                if (destination.length === 2) {
-                    executeMove(selectedIndices, destination);
+                if (target.length === 2) {
+                    history.push([...board]);
+                    board[target[0]] = board[selected[0]];
+                    board[target[1]] = board[selected[1]];
+                    board[selected[0]] = 'E';
+                    board[selected[1]] = 'E';
+                    moves++;
+                    selected = [];
+                    finishMove();
                 } else {
-                    selectedIndices = []; // Invalid click, deselect
+                    selected = [];
                 }
             }
             render();
         }
 
-        function executeMove(from, to) {
-            // Save state to history before changing anything
-            history.push([...board]);
-
-            // Move the rings
-            board[to[0]] = board[from[0]];
-            board[to[1]] = board[from[1]];
-            board[from[0]] = 'E';
-            board[from[1]] = 'E';
-
-            moves++;
-            selectedIndices = [];
+        function finishMove() {
+            const isWin = checkWin();
+            const msg = document.getElementById('message');
             
-            if (checkWin()) {
-                msgEl.innerText = "🎉 Brilliant! You solved it!";
-                msgEl.className = "win";
+            if (isWin) {
+                msg.innerText = "🌟 Masterfully Solved!";
+                msg.className = "win-text";
+                if (document.getElementById('confettiToggle').checked) {
+                    fireConfetti();
+                }
             } else if (moves >= 4) {
-                msgEl.innerText = "No moves left. Try again!";
-                msgEl.className = "lose";
-            }
-        }
-
-        function undoMove() {
-            if (history.length > 0) {
-                board = history.pop();
-                moves--;
-                selectedIndices = [];
-                msgEl.innerText = "";
-                render();
+                msg.innerText = "Out of moves! Try again.";
+                msg.className = "fail-text";
             }
         }
 
         function checkWin() {
             const rings = board.map((v, i) => v !== 'E' ? i : null).filter(v => v !== null);
-            if (rings.length === 0) return false;
+            if (rings.length < 8) return false;
+            
+            // Gap check
+            if (rings[7] - rings[0] !== 7) return false;
 
-            // Check for gaps
-            const isContinuous = (rings[rings.length-1] - rings[0]) === 7;
-            if (!isContinuous) return false;
-
-            // Check color grouping
             const pattern = rings.map(i => board[i]).join('');
-            return (pattern === "RRRRYYYY" || pattern === "YYYYRRRR");
+            return pattern === "RRRRYYYY" || pattern === "YYYYRRRR";
         }
 
-        function resetGame() {
-            board = [...INITIAL_STATE];
+        function fireConfetti() {
+            const duration = 3 * 1000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: [document.getElementById('color1').value, document.getElementById('color2').value]
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: [document.getElementById('color1').value, document.getElementById('color2').value]
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        function undo() {
+            if (history.length > 0) {
+                board = history.pop();
+                moves--;
+                selected = [];
+                document.getElementById('message').innerText = "";
+                render();
+            }
+        }
+
+        function reset() {
+            board = [...INITIAL];
             history = [];
             moves = 0;
-            selectedIndices = [];
-            msgEl.innerText = "";
+            selected = [];
+            document.getElementById('message').innerText = "";
             render();
         }
 
